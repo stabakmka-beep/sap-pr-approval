@@ -4,9 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Purchase Requests</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    /* The FCL root view is height 100% inside a zero-height wrapper, and its
+       columns use overflow:hidden, so the list is laid out and then clipped. */
+    body > div,
+    .sapUiComponentContainer,
+    .sapUiComponentContainer > div,
+    .sapUiView,
+    .sapFFCL,
+    .sapFFCLColumn,
+    .sapFFCLColumnContent,
+    .sapMNav,
+    .sapMNavItem,
+    .sapFDynamicPage,
+    .sapFDynamicPageContentWrapper {
+      height: 100%;
+    }
+    .sapFDynamicPageContentWrapper { flex: 1 1 auto; }
+  </style>
+</head>
+<body class="sapUiBody" id="content">
+  <p id="auth-notice" hidden style="font: 16px/1.5 sans-serif; max-width: 36rem; margin: 3rem auto; padding: 0 1rem;"></p>
+  <div
+    data-sap-ui-component
+    data-name="pr.myrequests"
+    data-id="container"
+    data-settings='{"id": "pr.myrequests"}'
+    data-handle-validation="true">
+  </div>
   <script>
     // Basic-auth userinfo in the document URL makes UI5's fetch() of manifest.json throw.
     // location.href hides that userinfo, so reload the same address without it.
+    const metadataUrl = "/odata/v4/requester/$metadata";
+    const signInUser = "alice";
     let credentialedUrl = false;
     try {
       new Request(new URL("manifest.json", document.baseURI));
@@ -16,27 +47,64 @@
     if (credentialedUrl || location.username) {
       location.replace(location.origin + location.pathname + location.search + location.hash);
     } else {
-      const bootstrap = document.createElement("script");
-      bootstrap.id = "sap-ui-bootstrap";
-      bootstrap.src = "https://sapui5.hana.ondemand.com/resources/sap-ui-core.js";
-      bootstrap.dataset.sapUiTheme = "sap_horizon";
-      bootstrap.dataset.sapUiResourceroots = '{"pr.myrequests": "./"}';
-      bootstrap.dataset.sapUiOninit = "module:sap/ui/core/ComponentSupport";
-      bootstrap.dataset.sapUiAsync = "true";
-      bootstrap.dataset.sapUiCompatversion = "edge";
-      bootstrap.dataset.sapUiFrameoptions = "trusted";
-      bootstrap.dataset.sapUiFlexibilityservices = '[{"connector": "SessionStorageConnector"}]';
-      document.head.appendChild(bootstrap);
+      let settled = false;
+      fetch(metadataUrl, { cache: "no-store" }).then(async (response) => {
+        settled = true;
+        if (response.status !== 401 && response.status !== 403) {
+          bootstrap();
+          return;
+        }
+        showAuthNotice(response.status, await response.text());
+      }).catch(() => {
+        settled = true;
+        showAuthNotice(401, "");
+      });
+      // Chrome can leave this request pending on a basic-auth dialog that never appears.
+      setTimeout(() => {
+        if (!settled) showAuthNotice(401, "");
+      }, 1200);
+    }
+
+    function bootstrap() {
+      const notice = document.getElementById("auth-notice");
+      notice.hidden = true;
+      notice.textContent = "";
+      if (document.getElementById("sap-ui-bootstrap")) return;
+      try { localStorage.removeItem("sap-ui-debug"); } catch (error) {}
+      const script = document.createElement("script");
+      script.id = "sap-ui-bootstrap";
+      script.async = false;
+      script.src = "https://ui5.sap.com/1.120.52/resources/sap-ui-core.js";
+      script.dataset.sapUiDebug = "false";
+      script.dataset.sapUiTheme = "sap_horizon";
+      script.dataset.sapUiResourceroots = '{"pr.myrequests": "./"}';
+      script.dataset.sapUiOninit = "module:sap/ui/core/ComponentSupport";
+      script.dataset.sapUiAsync = "true";
+      script.dataset.sapUiCompatversion = "edge";
+      script.dataset.sapUiFrameoptions = "trusted";
+      script.dataset.sapUiFlexibilityservices = '[{"connector": "SessionStorageConnector"}]';
+      document.head.appendChild(script);
+    }
+
+    function showAuthNotice(status, body) {
+      const match = /User '([^']+)'/.exec(body);
+      const text = status === 403 && match
+        ? "Signed in as " + match[1] + ", who can't use this app. Use " + signInUser + "/" + signInUser + " and close all private windows to switch users."
+        : "You are not signed in. Use " + signInUser + "/" + signInUser + ". Close all private windows if the browser is still signed in as someone else.";
+      const notice = document.getElementById("auth-notice");
+      notice.hidden = false;
+      notice.textContent = text + " ";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Sign in as " + signInUser;
+      button.onclick = () => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", metadataUrl, true, signInUser, signInUser);
+        xhr.onload = xhr.onerror = () => location.reload();
+        xhr.send();
+      };
+      notice.appendChild(button);
     }
   </script>
-</head>
-<body class="sapUiBody" id="content">
-  <div
-    data-sap-ui-component
-    data-name="pr.myrequests"
-    data-id="container"
-    data-settings='{"id": "pr.myrequests"}'
-    data-handle-validation="true">
-  </div>
 </body>
 </html>

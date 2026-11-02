@@ -97,7 +97,7 @@ Open [http://localhost:4004](http://localhost:4004). The home page lists the ser
 | Approvals | http://localhost:4004/approvals/webapp/index.html |
 | Approval Rules | http://localhost:4004/approval-rules/webapp/index.html |
 
-The browser loads SAPUI5 from `https://sapui5.hana.ondemand.com`. The first OData call asks for basic authentication.
+The browser loads SAPUI5 1.120.52 from `https://ui5.sap.com/1.120.52/resources/sap-ui-core.js` (the productive build, not the debug files). The first OData call asks for basic authentication.
 
 | User | Password | Role | What they can do |
 | --- | --- | --- | --- |
@@ -106,6 +106,8 @@ The browser loads SAPUI5 from `https://sapui5.hana.ondemand.com`. The first ODat
 | bob | bob | Approver | Level 1. Sample `PR10000002` is waiting for him. |
 | dave | dave | FinanceApprover | Level 2, above 5,000. Sample `PR10000004` is waiting for him. |
 | carol | carol | Admin | Approval rules. |
+
+The browser remembers that login for every app on this site. A private window keeps it until the window is closed. Each app checks its service before it loads SAPUI5. On 401 or 403 it says who is signed in and who can open that app, for example carol/carol for Approval Rules. The **Sign in as** button on that message switches the saved login for the whole site. To drop the login without signing in as someone else, close all windows for localhost, including every private window.
 
 Try this:
 
