@@ -1,0 +1,102 @@
+{
+  "name": "purchase-request",
+  "version": "1.0.0",
+  "description": "Purchase request approval starter for SAP BTP. CAP Node.js, Fiori Elements, and an MTA for Cloud Foundry.",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@cap-js/attachments": "^4",
+    "@cap-js/hana": "^3",
+    "@sap/cds": "^10",
+    "@sap/xssec": "^4"
+  },
+  "devDependencies": {
+    "@cap-js/cds-test": "^1.0.2",
+    "@cap-js/sqlite": "^3",
+    "@sap/cds-dk": "^10",
+    "jest": "^30"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "cds watch",
+    "build": "cds build --production && node scripts/pack-html5.mjs",
+    "test": "jest --runInBand"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "testTimeout": 60000,
+    "forceExit": true,
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ]
+  },
+  "cds": {
+    "fiori": {
+      "move_media_data_in_db": true
+    },
+    "requires": {
+      "auth": {
+        "kind": "mocked",
+        "users": {
+          "alice": {
+            "password": "alice",
+            "roles": [
+              "Requester"
+            ]
+          },
+          "erin": {
+            "password": "erin",
+            "roles": [
+              "Requester"
+            ]
+          },
+          "bob": {
+            "password": "bob",
+            "roles": [
+              "Approver"
+            ]
+          },
+          "dave": {
+            "password": "dave",
+            "roles": [
+              "FinanceApprover"
+            ]
+          },
+          "carol": {
+            "password": "carol",
+            "roles": [
+              "Admin"
+            ]
+          }
+        }
+      },
+      "db": {
+        "kind": "sqlite",
+        "credentials": {
+          "url": ":memory:"
+        }
+      },
+      "API_PURCHASEREQ_PROCESS_SRV": {
+        "kind": "odata-v2",
+        "model": "srv/external/API_PURCHASEREQ_PROCESS_SRV",
+        "[production]": {
+          "credentials": {
+            "destination": "S4HANA",
+            "path": "/sap/opu/odata/sap/API_PURCHASEREQ_PROCESS_SRV"
+          }
+        }
+      },
+      "[production]": {
+        "auth": {
+          "kind": "xsuaa"
+        },
+        "db": "hana",
+        "destinations": true,
+        "html5-repo": true
+      }
+    }
+  }
+}

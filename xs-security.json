@@ -1,0 +1,66 @@
+{
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.Requester",
+      "description": "Create and submit own purchase requests"
+    },
+    {
+      "name": "$XSAPPNAME.Approver",
+      "description": "Decide purchase requests at the cost-center level"
+    },
+    {
+      "name": "$XSAPPNAME.FinanceApprover",
+      "description": "Decide purchase requests that require a second approval level"
+    },
+    {
+      "name": "$XSAPPNAME.Admin",
+      "description": "Maintain approval rules"
+    }
+  ],
+  "attributes": [],
+  "role-templates": [
+    {
+      "name": "Requester",
+      "description": "Purchase requester",
+      "scope-references": ["$XSAPPNAME.Requester"]
+    },
+    {
+      "name": "Approver",
+      "description": "Cost-center approver",
+      "scope-references": ["$XSAPPNAME.Approver"]
+    },
+    {
+      "name": "FinanceApprover",
+      "description": "Finance approver",
+      "scope-references": ["$XSAPPNAME.FinanceApprover"]
+    },
+    {
+      "name": "Admin",
+      "description": "Approval-rule administrator",
+      "scope-references": ["$XSAPPNAME.Admin"]
+    }
+  ],
+  "role-collections": [
+    {
+      "name": "PR_Requester",
+      "description": "Create and track own purchase requests",
+      "role-template-references": ["$XSAPPNAME.Requester"]
+    },
+    {
+      "name": "PR_Approver",
+      "description": "Approve purchase requests as Approver",
+      "role-template-references": ["$XSAPPNAME.Approver"]
+    },
+    {
+      "name": "PR_FinanceApprover",
+      "description": "Approve purchase requests as FinanceApprover",
+      "role-template-references": ["$XSAPPNAME.FinanceApprover"]
+    },
+    {
+      "name": "PR_Admin",
+      "description": "Maintain purchase-request approval rules",
+      "role-template-references": ["$XSAPPNAME.Admin"]
+    }
+  ],
+  "authorities-inheritance": false
+}

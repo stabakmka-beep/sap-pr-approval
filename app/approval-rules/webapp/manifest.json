@@ -1,0 +1,121 @@
+{
+  "_version": "1.65.0",
+  "sap.app": {
+    "id": "pr.approvalrules",
+    "type": "application",
+    "title": "Approval Rules",
+    "description": "Maintain who approves a purchase request, and from which amount.",
+    "applicationVersion": { "version": "1.0.0" },
+    "dataSources": {
+      "main": {
+        "uri": "/odata/v4/admin/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "manage": {
+          "semanticObject": "ApprovalRule",
+          "action": "maintain",
+          "title": "Approval Rules",
+          "icon": "sap-icon://decision",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      }
+    }
+  },
+  "sap.cloud": {
+    "public": true,
+    "service": "purchase.request"
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "deviceTypes": { "desktop": true, "tablet": true, "phone": true }
+  },
+  "sap.ui5": {
+    "flexEnabled": false,
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {},
+        "sap.fe.core": {},
+        "sap.fe.templates": {},
+        "sap.f": {}
+      }
+    },
+    "contentDensities": { "compact": true, "cozy": true },
+    "models": {
+      "": {
+        "dataSource": "main",
+        "preload": true,
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
+      }
+    },
+    "routing": {
+      "routes": [
+        { "pattern": ":?query:", "name": "ApprovalRulesList", "target": ["ApprovalRulesList"] },
+        { "pattern": "ApprovalRules({key}):?query:", "name": "ApprovalRulesObjectPage", "target": ["ApprovalRulesList", "ApprovalRulesObjectPage"] }
+      ],
+      "targets": {
+        "ApprovalRulesList": {
+          "type": "Component",
+          "id": "ApprovalRulesList",
+          "name": "sap.fe.templates.ListReport",
+          "controlAggregation": "beginColumnPages",
+          "options": {
+            "settings": {
+              "entitySet": "ApprovalRules",
+              "contextPath": "/ApprovalRules",
+              "initialLoad": "Enabled",
+              "variantManagement": "None",
+              "navigation": {
+                "ApprovalRules": { "detail": { "route": "ApprovalRulesObjectPage" } }
+              }
+            }
+          }
+        },
+        "ApprovalRulesObjectPage": {
+          "type": "Component",
+          "id": "ApprovalRulesObjectPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "controlAggregation": "midColumnPages",
+          "contextPattern": "/ApprovalRules({key})",
+          "options": {
+            "settings": {
+              "entitySet": "ApprovalRules",
+              "contextPath": "/ApprovalRules",
+              "editableHeaderContent": false
+            }
+          }
+        }
+      },
+      "config": {
+        "flexibleColumnLayout": {
+          "defaultTwoColumnLayoutType": "TwoColumnsMidExpanded",
+          "defaultThreeColumnLayoutType": "ThreeColumnsMidExpanded"
+        },
+        "routerClass": "sap.f.routing.Router"
+      }
+    },
+    "rootView": {
+      "viewName": "sap.fe.core.rootView.Fcl",
+      "type": "XML",
+      "async": true,
+      "id": "appRootView"
+    }
+  },
+  "sap.fiori": {
+    "registrationIds": ["pr.approvalrules"],
+    "archeType": "transactional"
+  }
+}

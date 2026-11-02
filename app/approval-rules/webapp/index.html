@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approval Rules</title>
+  <script>
+    let credentialedUrl = false;
+    try {
+      new Request(new URL("manifest.json", document.baseURI));
+    } catch (error) {
+      credentialedUrl = String(error && error.message).includes("credentials");
+    }
+    if (credentialedUrl || location.username) {
+      location.replace(location.origin + location.pathname + location.search + location.hash);
+    } else {
+      const bootstrap = document.createElement("script");
+      bootstrap.id = "sap-ui-bootstrap";
+      bootstrap.src = "https://sapui5.hana.ondemand.com/resources/sap-ui-core.js";
+      bootstrap.dataset.sapUiTheme = "sap_horizon";
+      bootstrap.dataset.sapUiResourceroots = '{"pr.approvalrules": "./"}';
+      bootstrap.dataset.sapUiOninit = "module:sap/ui/core/ComponentSupport";
+      bootstrap.dataset.sapUiAsync = "true";
+      bootstrap.dataset.sapUiCompatversion = "edge";
+      bootstrap.dataset.sapUiFrameoptions = "trusted";
+      bootstrap.dataset.sapUiFlexibilityservices = '[{"connector": "SessionStorageConnector"}]';
+      document.head.appendChild(bootstrap);
+    }
+  </script>
+</head>
+<body class="sapUiBody" id="content">
+  <div
+    data-sap-ui-component
+    data-name="pr.approvalrules"
+    data-id="container"
+    data-settings='{"id": "pr.approvalrules"}'
+    data-handle-validation="true">
+  </div>
+</body>
+</html>

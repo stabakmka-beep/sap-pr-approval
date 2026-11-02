@@ -1,0 +1,10 @@
+{
+  "Name": "S4HANA",
+  "Description": "S/4HANA purchase requisition API (API_PURCHASEREQ_PROCESS_SRV) via Cloud Connector",
+  "Type": "HTTP",
+  "URL": "http://s4hana-virtual:44300",
+  "ProxyType": "OnPremise",
+  "Authentication": "PrincipalPropagation",
+  "HTML5.DynamicDestination": "true",
+  "sap-client": "100"
+}
