@@ -8,7 +8,7 @@
     html, body { height: 100%; margin: 0; }
     /* The FCL root view is height 100% inside a zero-height wrapper, and its
        columns use overflow:hidden, so the list is laid out and then clipped. */
-    body > div,
+    body > div:not(#assistant-root),
     .sapUiComponentContainer,
     .sapUiComponentContainer > div,
     .sapUiView,
@@ -84,6 +84,9 @@
       script.dataset.sapUiFrameoptions = "trusted";
       script.dataset.sapUiFlexibilityservices = '[{"connector": "SessionStorageConnector"}]';
       document.head.appendChild(script);
+      const panel = document.createElement('script');
+      panel.src = new URL('assistant.js', document.baseURI).href;
+      document.body.appendChild(panel);
     }
 
     function showAuthNotice(status, body) {

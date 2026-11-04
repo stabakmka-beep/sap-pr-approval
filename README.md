@@ -115,6 +115,45 @@ Try this:
 2. Sign in as **bob**. Amounts up to 5,000 post to S/4 on his approval. Above that, his approval moves the request to **dave**. The reject button calls the action `rejectRequest`. CAP already uses `reject` as the error helper, so the OData name cannot be `reject`.
 3. Sign in as **carol** to change the bands.
 
+## Approval assistant
+
+The Approvals app has an **Approval Assistant** button. It can list and summarize what is waiting for the signed-in user, and it can propose an approve or reject. The proposal does nothing until you press **Confirm**. Confirm calls the existing `approve` or `rejectRequest` action, so the assistant cannot do more than that user's roles allow.
+
+Sign in as **bob** / **bob** and open [http://localhost:4004/approvals/webapp/index.html](http://localhost:4004/approvals/webapp/index.html). Try:
+
+- What's waiting for me?
+- What's waiting for me over $5K? (bob's sample request is 1,500, so this is empty; **dave** / **dave** has `PR10000004` at 8,000)
+- Summarize PR10000002
+- Which requests from IT are pending?
+- Approve PR10000002
+
+`npm run watch` does not need SAP AI Core. With no `aicore` binding the assistant is a deterministic local matcher (`model` is `mock`) over the sample data. Set `ASSISTANT_LLM=mock` to keep that matcher even after a binding is present.
+
+To call Generative AI Hub instead, bind SAP AI Core and deploy a model (the default name is `gpt-4o`):
+
+1. Entitle the subaccount for service `aicore`, plan `extended`, and subscribe to SAP AI Core / Generative AI Hub.
+2. In SAP AI Launchpad, open the resource group you will use (`default` unless you set `AICORE_RESOURCE_GROUP`) and deploy the model. The deployment name must match `cds.requires.aicore.model`, `AICORE_MODEL`, or the default `gpt-4o`.
+3. The MTA creates that service instance as `purchase-request-aicore` and binds it to `purchase-request-srv`. On Cloud Foundry the binding arrives in `VCAP_SERVICES.aicore`.
+4. Locally, from a Cloud Foundry login that can see the instance:
+
+```bash
+cds bind --to purchase-request-aicore --exec -- npm run watch
+```
+
+`cds bind` writes `.cdsrc-private.json` (gitignored). The AI SDK reads the service binding from the environment, so `--exec` is what injects it into the process. You can also put a service key in gitignored `default-env.json`:
+
+```json
+{
+  "VCAP_SERVICES": {
+    "aicore": [
+      { "label": "aicore", "plan": "extended", "credentials": { } }
+    ]
+  }
+}
+```
+
+Paste the service key into `credentials`. To send the hub calls through a Destination service entry instead of the default binding lookup, set `AICORE_DESTINATION` (or `cds.requires.aicore.destination`) to that destination name. Do not commit service keys.
+
 A submitted request with no decisions yet can be withdrawn. A rejection needs a comment. The requester can edit a rejected request and submit it again. Earlier decisions stay on the approval history.
 
 `npm test` runs the same flow against an in-memory server and the mocked S/4 service. While `cds watch` is running, the mock is also browsable at `/odata/v4/api-purchasereq-process-srv/A_PurchaseRequisitionHeader`. That endpoint is not part of the production service.
@@ -186,7 +225,7 @@ To move that to a process:
 
 ## Deploy to SAP BTP, Cloud Foundry
 
-Entitlements: HANA Cloud `hdi-shared` (on a trial landscape this is sometimes `hana` / `hdi-shared` under a free plan; change the resource in `mta.yaml` if your entitlement name differs), XSUAA `application`, Destination `lite`, Connectivity `lite`, HTML5 Application Repository `app-host` and `app-runtime`.
+Entitlements: HANA Cloud `hdi-shared` (on a trial landscape this is sometimes `hana` / `hdi-shared` under a free plan; change the resource in `mta.yaml` if your entitlement name differs), XSUAA `application`, Destination `lite`, Connectivity `lite`, HTML5 Application Repository `app-host` and `app-runtime`, and SAP AI Core `aicore` plan `extended` for the approval assistant.
 
 Install the [Cloud MTA Build Tool](https://github.com/SAP/cloud-mta-build-tool) and the [MultiApps CF CLI plugin](https://github.com/cloudfoundry/multiapps-cli-plugin).
 
@@ -230,7 +269,7 @@ Supplier quotes use `@cap-js/attachments` and are stored in the database (SQLite
 npm test
 ```
 
-Jest and `cds.test` cover owner isolation, the approver inbox, save validation, a one-level post, a two-level post, rejection, withdraw, the Fiori draft activate path, and admin rules. S/4 is the in-process mock. The posted requisition is read back from `A_PurchaseRequisitionHeader`, the item, and the cost-center account assignment.
+Jest and `cds.test` cover owner isolation, the approver inbox, save validation, a one-level post, a two-level post, rejection, withdraw, the Fiori draft activate path, and admin rules. Assistant tests cover inbox filters, a hidden request, a requester who cannot approve, and approve or reject that stay unchanged until `confirm`. S/4 is the in-process mock. The posted requisition is read back from `A_PurchaseRequisitionHeader`, the item, and the cost-center account assignment. The assistant tests do not call Generative AI Hub.
 
 ## Next steps
 
