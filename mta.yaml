@@ -25,6 +25,8 @@ modules:
       health-check-http-endpoint: /health
     properties:
       NODE_ENV: production
+      AICORE_MODEL: gpt-4o
+      AICORE_RESOURCE_GROUP: default
     build-parameters:
       builder: npm-ci
     provides:
@@ -36,6 +38,7 @@ modules:
       - name: purchase-request-db
       - name: purchase-request-destination
       - name: purchase-request-connectivity
+      - name: purchase-request-aicore
 
   - name: purchase-request-db-deployer
     type: hdb
@@ -135,6 +138,12 @@ resources:
     parameters:
       service: connectivity
       service-plan: lite
+
+  - name: purchase-request-aicore
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: aicore
+      service-plan: extended
 
   - name: purchase-request-html5-repo-host
     type: org.cloudfoundry.managed-service

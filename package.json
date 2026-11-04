@@ -9,6 +9,7 @@
   "dependencies": {
     "@cap-js/attachments": "^4",
     "@cap-js/hana": "^3",
+    "@sap-ai-sdk/orchestration": "^2.17.0",
     "@sap/cds": "^10",
     "@sap/xssec": "^4"
   },
@@ -78,6 +79,10 @@
         "credentials": {
           "url": ":memory:"
         }
+      },
+      "aicore": {
+        "model": "gpt-4o",
+        "resourceGroup": "default"
       },
       "API_PURCHASEREQ_PROCESS_SRV": {
         "kind": "odata-v2",
