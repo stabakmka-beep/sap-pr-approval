@@ -1,0 +1,23 @@
+---
+# Cloud Foundry Environment pipeline version 3.
+# Read when the job configuration mode is Source Repository.
+# Replace apiEndpoint, org, and space. Create a service credential named cf-deploy-credentials.
+# Setup: docs/CICD.md
+stages:
+  build:
+    buildTool: "mta"
+    buildToolVersion: "MBTJ21N22"
+    buildDescriptor: "mta.yaml"
+  additionalTests:
+    npmTests:
+      buildDescriptor: "package.json"
+      npmScript: "test"
+  malwareScan:
+    scan: true
+  acceptance:
+    cfDeploy:
+      credential: "cf-deploy-credentials"
+      apiEndpoint: "https://api.cf.<region>.hana.ondemand.com"
+      org: "<org>"
+      space: "<space>"
+      strategy: "default"

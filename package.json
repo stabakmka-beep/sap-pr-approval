@@ -31,6 +31,10 @@
     "forceExit": true,
     "testMatch": [
       "**/test/**/*.test.js"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/gen/",
+      "<rootDir>/mta_archives/"
     ]
   },
   "cds": {

@@ -1,0 +1,133 @@
+# Tests and MTA build on every pull request and push.
+# Deploy runs only for a push to main, or a manual workflow_dispatch.
+# Deploy is skipped (and the job stays green) when the Cloud Foundry secrets are unset.
+name: CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Test and build MTA
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install zip
+        run: |
+          if ! command -v zip >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y zip
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Install the Cloud MTA Build Tool
+        run: npm install -g mbt@1.2.50
+
+      - name: Build the MTA archive
+        run: mbt build
+
+      - name: Upload the MTA archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: mta-archive
+          path: mta_archives/*.mtar
+          if-no-files-found: error
+          retention-days: 5
+
+  deploy:
+    name: Deploy to Cloud Foundry
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: purchase-request-cf-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Check Cloud Foundry secrets
+        id: cf
+        env:
+          CF_API: ${{ secrets.CF_API }}
+          CF_ORG: ${{ secrets.CF_ORG }}
+          CF_SPACE: ${{ secrets.CF_SPACE }}
+          CF_USERNAME: ${{ secrets.CF_USERNAME }}
+          CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
+        run: |
+          missing=()
+          for name in CF_API CF_ORG CF_SPACE CF_USERNAME CF_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Cloud Foundry secrets are set. Deploy will run."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Cloud Foundry deploy skipped."
+            echo "Missing GitHub Actions secrets: ${missing[*]}."
+            echo "Tests and the MTA build already passed. Add CF_API, CF_ORG, CF_SPACE, CF_USERNAME, and CF_PASSWORD under Settings → Secrets and variables → Actions, then re-run this workflow."
+            echo "::notice title=Cloud Foundry deploy skipped::Missing GitHub Actions secrets: ${missing[*]}. Tests and the MTA build already passed. Add CF_API, CF_ORG, CF_SPACE, CF_USERNAME, and CF_PASSWORD, then re-run."
+          fi
+
+      - name: Download the MTA archive
+        if: steps.cf.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: mta-archive
+          path: mta_archives
+
+      - name: Install the Cloud Foundry CLI and multiapps plugin
+        if: steps.cf.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          curl -fsSL "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=8.19.0&source=github" -o "$tmpdir/cf.tgz"
+          tar -xzf "$tmpdir/cf.tgz" -C "$tmpdir"
+          if [ -f "$tmpdir/cf" ]; then
+            binary="$tmpdir/cf"
+          elif [ -f "$tmpdir/cf8" ]; then
+            binary="$tmpdir/cf8"
+          else
+            echo "The Cloud Foundry CLI archive did not contain a cf binary." >&2
+            ls -la "$tmpdir" >&2
+            exit 1
+          fi
+          sudo install -m 755 "$binary" /usr/local/bin/cf
+          cf version
+          cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org
+          cf install-plugin -r CF-Community multiapps -f
+          cf plugins
+
+      - name: Deploy the MTA archive
+        if: steps.cf.outputs.ready == 'true'
+        env:
+          CF_API: ${{ secrets.CF_API }}
+          CF_ORG: ${{ secrets.CF_ORG }}
+          CF_SPACE: ${{ secrets.CF_SPACE }}
+          CF_USERNAME: ${{ secrets.CF_USERNAME }}
+          CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
+          MULTIAPPS_DISABLE_UPLOAD_PROGRESS_BAR: "true"
+        run: |
+          set -euo pipefail
+          cf login -a "$CF_API" -u "$CF_USERNAME" -p "$CF_PASSWORD" -o "$CF_ORG" -s "$CF_SPACE"
+          cf deploy mta_archives/*.mtar -f

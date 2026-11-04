@@ -76,6 +76,9 @@ app/approval-rules/                   admin rules
 mta.yaml                              HANA, XSUAA, destination, connectivity, HTML5 repo
 xs-security.json                      roles and role collections
 test/purchase-request.test.js
+.sap_cid/config.yaml                  SAP Continuous Integration and Delivery job
+.github/workflows/ci.yml              GitHub Actions test, MTA build, optional deploy
+docs/CICD.md                          setup for both pipelines
 ```
 
 ## Run locally
@@ -223,6 +226,15 @@ In the cockpit: Security, Users, assign the collection. With the btp CLI, `btp a
 Create the `S4HANA` destination as above before the first real posting. The MTA creates the destination service and a `ui5` destination for the CDN. It does not create `S4HANA`, so a placeholder cannot mask a missing virtual host.
 
 Supplier quotes use `@cap-js/attachments` and are stored in the database (SQLite locally, HANA Cloud in production). `cds.fiori.move_media_data_in_db` is on so draft binaries stay in the table. To move them to SAP Object Store, bind the store and follow the plugin's `attachments.kind` settings, and turn that Fiori flag back off so the plugin streams content out of the draft on save.
+
+## Continuous integration and delivery
+
+Two pipelines are in the repo. Either one can build the MTA, run `npm test`, and deploy to Cloud Foundry. Set up the one you want, and leave the other one not deploying. Step-by-step setup, the deployer user, and how to turn a pipeline off are in [docs/CICD.md](docs/CICD.md).
+
+| Pipeline | What it runs | Deploy |
+| --- | --- | --- |
+| SAP Continuous Integration and Delivery | [`.sap_cid/config.yaml`](.sap_cid/config.yaml). The job type in the service is **Cloud Foundry Environment** (pipeline version 3). That is the current pipeline for a CAP / MTA project. The old `.pipeline/config.yml` format is no longer read. | Acceptance stage, credential `cf-deploy-credentials`, after you subscribe and create the job. |
+| GitHub Actions | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on every pull request and push: `npm ci`, `npm test`, `mbt build`. There is no `lint` script, so lint is not a separate step. | Push to `main`, or a manual run. Skipped, with a notice, until the `CF_*` secrets exist. |
 
 ## Tests
 
